@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using MovieRentalCore.Data;
 using MovieRentalCore.Models;
 using MovieRentalCore.Services;
+using MovieRental.Data;
 
 namespace MovieRentalCore
 {
@@ -49,13 +50,17 @@ namespace MovieRentalCore
 
             services.AddMvc();
 
+            services.AddDbContext<MovieRentalContext>(options =>
+                options.UseSqlServer(Configuration.GetConnectionString("DataConnection")));
+
             // Add application services.
             services.AddTransient<IEmailSender, AuthMessageSender>();
             services.AddTransient<ISmsSender, AuthMessageSender>();
+            services.AddScoped<IMovieRepository, MovieRepository>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory, MovieRentalContext context)
         {
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
@@ -79,10 +84,15 @@ namespace MovieRentalCore
 
             app.UseMvc(routes =>
             {
+                routes.MapRoute(name: "areaRoute",
+                  template: "{area:exists}/{controller=Home}/{action=Index}");
+
                 routes.MapRoute(
                     name: "default",
                     template: "{controller=Home}/{action=Index}/{id?}");
             });
+
+            DBInitializer.Initialize(context);
         }
     }
 }
